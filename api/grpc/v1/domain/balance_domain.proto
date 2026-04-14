@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+package github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/domain;domain";
+
+enum WalletOwnerType {
+  WALLET_OWNER_TYPE_UNSPECIFIED = 0;
+  WALLET_OWNER_TYPE_USER = 1;
+  WALLET_OWNER_TYPE_VENDOR = 2;
+  WALLET_OWNER_TYPE_SYSTEM = 3;
+}
+
+enum WalletStatus {
+  WALLET_STATUS_UNSPECIFIED = 0;
+  WALLET_STATUS_ACTIVE = 1;
+  WALLET_STATUS_FROZEN = 2;
+  WALLET_STATUS_CLOSED = 3;
+}
+
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  ACCOUNT_TYPE_AVAILABLE = 1;
+  ACCOUNT_TYPE_HOLD = 2;
+}
+
+enum AccountStatus {
+  ACCOUNT_STATUS_UNSPECIFIED = 0;
+  ACCOUNT_STATUS_ACTIVE = 1;
+  ACCOUNT_STATUS_FROZEN = 2;
+  ACCOUNT_STATUS_CLOSED = 3;
+}
+
+enum ProviderType {
+  PROVIDER_TYPE_UNSPECIFIED = 0;
+  PROVIDER_TYPE_ACQUIRING = 1;
+  PROVIDER_TYPE_CRYPTO = 2;
+}
+
+enum TopUpStatus {
+  TOP_UP_STATUS_UNSPECIFIED = 0;
+  TOP_UP_STATUS_CREATED = 1;
+  TOP_UP_STATUS_PENDING = 2;
+  TOP_UP_STATUS_PAID = 3;
+  TOP_UP_STATUS_CONFIRMED = 4;
+  TOP_UP_STATUS_FAILED = 5;
+  TOP_UP_STATUS_CANCELED = 6;
+  TOP_UP_STATUS_EXPIRED = 7;
+}
+
+enum WithdrawalStatus {
+  WITHDRAWAL_STATUS_UNSPECIFIED = 0;
+  WITHDRAWAL_STATUS_CREATED = 1;
+  WITHDRAWAL_STATUS_PENDING = 2;
+  WITHDRAWAL_STATUS_COMPLETED = 3;
+  WITHDRAWAL_STATUS_FAILED = 4;
+  WITHDRAWAL_STATUS_CANCELED = 5;
+}
+
+enum LedgerTransactionType {
+  LEDGER_TRANSACTION_TYPE_UNSPECIFIED = 0;
+  LEDGER_TRANSACTION_TYPE_TOP_UP = 1;
+  LEDGER_TRANSACTION_TYPE_HOLD = 2;
+  LEDGER_TRANSACTION_TYPE_CAPTURE = 3;
+  LEDGER_TRANSACTION_TYPE_RELEASE = 4;
+  LEDGER_TRANSACTION_TYPE_REFUND = 5;
+  LEDGER_TRANSACTION_TYPE_WITHDRAWAL = 6;
+  LEDGER_TRANSACTION_TYPE_ADJUSTMENT = 7;
+}
+
+enum LedgerTransactionStatus {
+  LEDGER_TRANSACTION_STATUS_UNSPECIFIED = 0;
+  LEDGER_TRANSACTION_STATUS_PENDING = 1;
+  LEDGER_TRANSACTION_STATUS_POSTED = 2;
+  LEDGER_TRANSACTION_STATUS_REVERSED = 3;
+  LEDGER_TRANSACTION_STATUS_FAILED = 4;
+}
+
+enum EntryDirection {
+  ENTRY_DIRECTION_UNSPECIFIED = 0;
+  ENTRY_DIRECTION_DEBIT = 1;
+  ENTRY_DIRECTION_CREDIT = 2;
+}
+
+enum ReferenceType {
+  REFERENCE_TYPE_UNSPECIFIED = 0;
+  REFERENCE_TYPE_TOP_UP = 1;
+  REFERENCE_TYPE_ORDER = 2;
+  REFERENCE_TYPE_WITHDRAWAL = 3;
+  REFERENCE_TYPE_MANUAL_OPERATION = 4;
+}
+
+enum DestinationType {
+  DESTINATION_TYPE_UNSPECIFIED = 0;
+  DESTINATION_TYPE_BANK_CARD = 1;
+  DESTINATION_TYPE_CRYPTO_WALLET = 2;
+  DESTINATION_TYPE_BANK_ACCOUNT = 3;
+}
+
+message Money {
+  string amount = 1;
+  int64 currency_code = 2;
+}
+
+message Wallet {
+  int64 id = 1;
+  WalletOwnerType owner_type = 2;
+  int64 owner_id = 3;
+  WalletStatus status = 4;
+  repeated Account accounts = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message Account {
+  int64 id = 1;
+  int64 wallet_id = 2;
+  int64 currency_code = 3;
+  AccountType account_type = 4;
+  AccountStatus status = 5;
+  string balance = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message LedgerEntry {
+  int64 id = 1;
+  int64 account_id = 2;
+  EntryDirection direction = 3;
+  Money money = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message LedgerTransaction {
+  int64 id = 1;
+  string idempotency_key = 2;
+  LedgerTransactionType type = 3;
+  LedgerTransactionStatus status = 4;
+  string reason = 5;
+  ReferenceType reference_type = 6;
+  string reference_id = 7;
+  repeated LedgerEntry entries = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp posted_at = 10;
+  google.protobuf.Timestamp reversed_at = 11;
+}
+
+message TopUp {
+  int64 id = 1;
+  int64 wallet_id = 2;
+  Money money = 3;
+  ProviderType provider_type = 4;
+  string provider_name = 5;
+  TopUpStatus status = 6;
+  string external_id = 7;
+  string external_status = 8;
+  string payment_url = 9;
+  string wallet_address = 10;
+  string wallet_tag = 11;
+  string network = 12;
+  string tx_hash = 13;
+  string idempotency_key = 14;
+  google.protobuf.Timestamp expires_at = 15;
+  google.protobuf.Timestamp paid_at = 16;
+  google.protobuf.Timestamp confirmed_at = 17;
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp updated_at = 19;
+}
+
+message Withdrawal {
+  int64 id = 1;
+  int64 wallet_id = 2;
+  Money money = 3;
+  DestinationType destination_type = 4;
+  string destination = 5;
+  WithdrawalStatus status = 6;
+  string external_id = 7;
+  string idempotency_key = 8;
+  google.protobuf.Timestamp requested_at = 9;
+  google.protobuf.Timestamp processed_at = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
