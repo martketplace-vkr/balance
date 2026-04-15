@@ -16,6 +16,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/IBM/sarama v1.47.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
+	github.com/avast/retry-go/v4 v4.7.0 // indirect
 	github.com/avito-tech/go-transaction-manager v1.5.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

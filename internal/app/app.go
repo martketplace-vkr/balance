@@ -7,6 +7,7 @@ import (
 	// txmanager "github.com/avito-tech/go-transaction-manager/trm/manager"
 
 	"github.com/martketplace-vkr/balance/config"
+	inboxComponent "github.com/martketplace-vkr/balance/internal/app/cmp/inbox"
 	outboxComponent "github.com/martketplace-vkr/balance/internal/app/cmp/outbox"
 	"github.com/martketplace-vkr/balance/internal/app/cmp/server"
 	repository "github.com/martketplace-vkr/balance/internal/repository/pg"
@@ -14,6 +15,7 @@ import (
 	adminTransport "github.com/martketplace-vkr/balance/internal/transport/grpc/v1/admin"
 	clientTransport "github.com/martketplace-vkr/balance/internal/transport/grpc/v1/client"
 	orderTransport "github.com/martketplace-vkr/balance/internal/transport/grpc/v1/order"
+	"github.com/martketplace-vkr/balance/pkg/eventmapper"
 	cryptowallet "github.com/martketplace-vkr/crypto-wallet/pkg/api/grpc/v1"
 
 	"github.com/martketplace-vkr/pkg/build"
@@ -49,6 +51,12 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	adminHandler := adminTransport.New(service)
 	clientHandler := clientTransport.New(service)
 	orderHandler := orderTransport.New(service)
+	inboxCmp := inboxComponent.New(
+		cfg.Inbox,
+		pg,
+		kafkaClient,
+		eventmapper.GetEventMapper(service),
+	)
 
 	grpcServer := server.New(cfg.Grpc, adminHandler, clientHandler, orderHandler)
 
@@ -56,6 +64,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		pg,
 		outboxCmp,
 		cryptoWalletClient,
+		inboxCmp,
 		grpcServer,
 	}
 

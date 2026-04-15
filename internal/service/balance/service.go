@@ -3,6 +3,7 @@ package balance
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -15,8 +16,13 @@ import (
 	orderpb "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/order"
 	cryptowallet "github.com/martketplace-vkr/crypto-wallet/pkg/api/grpc/v1"
 	cryptowalletpb "github.com/martketplace-vkr/crypto-wallet/pkg/api/grpc/v1/client"
+	"github.com/martketplace-vkr/pkg/inbox/dto"
 	"github.com/martketplace-vkr/pkg/utils/currency"
 )
+
+type userSignUpEvent struct {
+	ID int64 `json:"ID"`
+}
 
 type Service struct {
 	repository   *repository.Repository
@@ -38,6 +44,32 @@ func New(repository *repository.Repository, outbox outbox, cryptoWallet *cryptow
 
 func (s *Service) GetClientWallet(ctx context.Context, userID int64) (*domainpb.Wallet, error) {
 	return s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_USER, userID)
+}
+
+func (s *Service) HandleUserSignUp(ctx context.Context, event dto.Event) error {
+	var payload userSignUpEvent
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return err
+	}
+	if payload.ID <= 0 {
+		return fmt.Errorf("%w: user_id must be greater than zero", ErrInvalidArgument)
+	}
+
+	return s.EnsureUserWalletAccounts(ctx, payload.ID)
+}
+
+func (s *Service) EnsureUserWalletAccounts(ctx context.Context, userID int64) error {
+	wallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_USER, userID)
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.repository.GetOrCreateAccount(ctx, wallet.Id, int64(currency.USDTinTRC), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE); err != nil {
+		return err
+	}
+
+	_, err = s.repository.GetOrCreateAccount(ctx, wallet.Id, int64(currency.USDTinTRC), domainpb.AccountType_ACCOUNT_TYPE_HOLD)
+	return err
 }
 
 func (s *Service) GetWalletTransactions(ctx context.Context, userID int64, currencyCode *int64, limit uint32, offset uint64) ([]*domainpb.LedgerTransaction, error) {
