@@ -90,6 +90,19 @@ create index if not exists idx_balance_top_up_wallet_id
 create index if not exists idx_balance_top_up_status
     on balance.top_up(status);
 
+create table if not exists balance.deposit_address (
+    id bigserial primary key,
+    user_id bigint not null unique,
+    address text not null,
+    network text not null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    unique (network, address)
+);
+
+create index if not exists idx_balance_deposit_address_network
+    on balance.deposit_address(network, user_id);
+
 create table if not exists balance.withdrawal (
     id bigserial primary key,
     wallet_id bigint not null references balance.wallet(id) on delete cascade,

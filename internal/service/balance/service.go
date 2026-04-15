@@ -7,19 +7,33 @@ import (
 	"fmt"
 	"time"
 
+	internaldomain "github.com/martketplace-vkr/balance/internal/domain"
 	repository "github.com/martketplace-vkr/balance/internal/repository/pg"
 	adminpb "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/admin"
 	clientpb "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/client"
 	domainpb "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/domain"
 	orderpb "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/order"
+	cryptowallet "github.com/martketplace-vkr/crypto-wallet/pkg/api/grpc/v1"
+	cryptowalletpb "github.com/martketplace-vkr/crypto-wallet/pkg/api/grpc/v1/client"
+	"github.com/martketplace-vkr/pkg/utils/currency"
 )
 
 type Service struct {
-	repository *repository.Repository
+	repository   *repository.Repository
+	outbox       outbox
+	cryptoWallet *cryptowallet.Connector
 }
 
-func New(repository *repository.Repository) *Service {
-	return &Service{repository: repository}
+type outbox interface {
+	Send(ctx context.Context, eventType string, payload any) error
+}
+
+func New(repository *repository.Repository, outbox outbox, cryptoWallet *cryptowallet.Connector) *Service {
+	return &Service{
+		repository:   repository,
+		outbox:       outbox,
+		cryptoWallet: cryptoWallet,
+	}
 }
 
 func (s *Service) GetClientWallet(ctx context.Context, userID int64) (*domainpb.Wallet, error) {
@@ -78,11 +92,53 @@ func (s *Service) CreateTopUp(ctx context.Context, req *clientpb.CreateTopUpRequ
 	case domainpb.ProviderType_PROVIDER_TYPE_ACQUIRING:
 		createReq.PaymentURL = fmt.Sprintf("https://payments.local/top-ups/%s", req.GetIdempotencyKey())
 	case domainpb.ProviderType_PROVIDER_TYPE_CRYPTO:
-		createReq.WalletAddress = fmt.Sprintf("wallet_%d_%d", req.GetUserId(), time.Now().UnixNano())
+		if req.GetMoney().GetCurrencyCode() != int64(currency.USDTinTRC) {
+			return nil, fmt.Errorf("%w: only USDT-TRC20 is supported", ErrInvalidArgument)
+		}
+		if req.GetNetwork() != "TRON" {
+			return nil, fmt.Errorf("%w: only TRON network is supported", ErrInvalidArgument)
+		}
+		if s.cryptoWallet == nil || s.cryptoWallet.Client == nil {
+			return nil, fmt.Errorf("%w: crypto wallet client is not configured", ErrInvalidArgument)
+		}
+
+		addressResp, err := s.cryptoWallet.Client.GetOrCreateDepositAddress(ctx, &cryptowalletpb.GetOrCreateDepositAddressRequest{
+			UserId:  req.GetUserId(),
+			Network: req.GetNetwork(),
+			Asset:   "USDT",
+		})
+		if err != nil {
+			return nil, err
+		}
+		if addressResp.GetDepositAddress() == nil || addressResp.GetDepositAddress().GetAddress() == "" {
+			return nil, fmt.Errorf("%w: empty deposit address received", ErrInvalidArgument)
+		}
+
+		createReq.WalletAddress = addressResp.GetDepositAddress().GetAddress()
 		createReq.Network = req.GetNetwork()
+	default:
+		return nil, fmt.Errorf("%w: unsupported provider_type", ErrInvalidArgument)
 	}
 
-	return s.repository.CreateTopUp(ctx, createReq)
+	topUp, err := s.repository.CreateTopUp(ctx, createReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.GetProviderType() == domainpb.ProviderType_PROVIDER_TYPE_CRYPTO && s.outbox != nil {
+		if err := s.outbox.Send(ctx, "blockchain_watch_address_register", internaldomain.RegisterWatchAddressEvent{
+			UserID:   req.GetUserId(),
+			Address:  topUp.GetWalletAddress(),
+			Network:  topUp.GetNetwork(),
+			Asset:    "USDT",
+			Source:   "balance_topup",
+			Provider: req.GetProviderName(),
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	return topUp, nil
 }
 
 func (s *Service) GetTopUp(ctx context.Context, userID, topUpID int64) (*domainpb.TopUp, error) {

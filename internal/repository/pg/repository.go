@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"math/big"
 
@@ -16,6 +17,55 @@ type Repository struct {
 
 func New(db *sqlx.DB) *Repository {
 	return &Repository{db: db}
+}
+
+func (r *Repository) GetDepositAddressByUser(ctx context.Context, userID int64, network string) (*depositAddressRow, error) {
+	var row depositAddressRow
+	query := `
+		select id, user_id, address, network, created_at, updated_at
+		from balance.deposit_address
+		where user_id = $1
+			and network = $2
+	`
+	if err := r.db.GetContext(ctx, &row, query, userID, network); err != nil {
+		return nil, err
+	}
+
+	return &row, nil
+}
+
+func (r *Repository) AssignDepositAddress(ctx context.Context, userID int64, network string, pool []string) (string, error) {
+	if existing, err := r.GetDepositAddressByUser(ctx, userID, network); err == nil {
+		return existing.Address, nil
+	} else if err != sql.ErrNoRows {
+		return "", err
+	}
+
+	query := `
+		insert into balance.deposit_address(user_id, address, network)
+		values ($1, $2, $3)
+		on conflict do nothing
+		returning address
+	`
+
+	for _, candidate := range pool {
+		var address string
+		err := r.db.GetContext(ctx, &address, query, userID, candidate, network)
+		if err == nil {
+			return address, nil
+		}
+		if err != sql.ErrNoRows {
+			return "", err
+		}
+	}
+
+	if existing, err := r.GetDepositAddressByUser(ctx, userID, network); err == nil {
+		return existing.Address, nil
+	} else if err != sql.ErrNoRows {
+		return "", err
+	}
+
+	return "", fmt.Errorf("no free deposit addresses")
 }
 
 func (r *Repository) GetWalletByOwner(ctx context.Context, ownerType domainpb.WalletOwnerType, ownerID int64) (*domainpb.Wallet, error) {

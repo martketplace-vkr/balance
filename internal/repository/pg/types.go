@@ -74,6 +74,15 @@ type topUpRow struct {
 	UpdatedAt      time.Time      `db:"updated_at"`
 }
 
+type depositAddressRow struct {
+	ID        int64     `db:"id"`
+	UserID    int64     `db:"user_id"`
+	Address   string    `db:"address"`
+	Network   string    `db:"network"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
 type withdrawalRow struct {
 	ID              int64          `db:"id"`
 	WalletID        int64          `db:"wallet_id"`
