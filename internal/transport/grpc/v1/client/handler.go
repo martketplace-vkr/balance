@@ -30,6 +30,19 @@ func (h *Handler) GetWallet(ctx context.Context, req *clientpb.GetWalletRequest)
 	return &clientpb.GetWalletResponse{Wallet: wallet}, nil
 }
 
+func (h *Handler) GetDepositAddressList(ctx context.Context, req *clientpb.GetDepositAddressListRequest) (*clientpb.GetDepositAddressListResponse, error) {
+	if err := ValidateID("user_id", req.GetUserId()); err != nil {
+		return nil, err
+	}
+
+	addresses, err := h.service.GetDepositAddressList(ctx, req.GetUserId())
+	if err != nil {
+		return nil, ToStatusError(err)
+	}
+
+	return &clientpb.GetDepositAddressListResponse{DepositAddresses: addresses}, nil
+}
+
 func (h *Handler) GetWalletTransactions(ctx context.Context, req *clientpb.GetWalletTransactionsRequest) (*clientpb.GetWalletTransactionsResponse, error) {
 	if err := ValidateID("user_id", req.GetUserId()); err != nil {
 		return nil, err

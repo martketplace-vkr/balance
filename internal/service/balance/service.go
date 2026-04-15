@@ -24,6 +24,11 @@ type userSignUpEvent struct {
 	ID int64 `json:"ID"`
 }
 
+const (
+	cryptoNetwork = "TRON"
+	cryptoAsset   = "USDT"
+)
+
 type Service struct {
 	repository   *repository.Repository
 	outbox       outbox
@@ -43,7 +48,7 @@ func New(repository *repository.Repository, outbox outbox, cryptoWallet *cryptow
 }
 
 func (s *Service) GetClientWallet(ctx context.Context, userID int64) (*domainpb.Wallet, error) {
-	return s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_USER, userID)
+	return s.ensureUserAccounts(ctx, userID)
 }
 
 func (s *Service) HandleUserSignUp(ctx context.Context, event dto.Event) error {
@@ -51,6 +56,7 @@ func (s *Service) HandleUserSignUp(ctx context.Context, event dto.Event) error {
 	if err := json.Unmarshal(event.Payload, &payload); err != nil {
 		return err
 	}
+
 	if payload.ID <= 0 {
 		return fmt.Errorf("%w: user_id must be greater than zero", ErrInvalidArgument)
 	}
@@ -59,17 +65,79 @@ func (s *Service) HandleUserSignUp(ctx context.Context, event dto.Event) error {
 }
 
 func (s *Service) EnsureUserWalletAccounts(ctx context.Context, userID int64) error {
+	if _, err := s.ensureUserAccounts(ctx, userID); err != nil {
+		return err
+	}
+
+	_, err := s.ensureUserCryptoDepositAddress(ctx, userID)
+	return err
+}
+
+func (s *Service) ensureUserAccounts(ctx context.Context, userID int64) (*domainpb.Wallet, error) {
 	wallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_USER, userID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if _, err := s.repository.GetOrCreateAccount(ctx, wallet.Id, int64(currency.USDTinTRC), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE); err != nil {
-		return err
+	for _, currencyCode := range []int64{int64(currency.RUB), int64(currency.USDTinTRC)} {
+		if _, err := s.repository.GetOrCreateAccount(ctx, wallet.Id, currencyCode, domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE); err != nil {
+			return nil, err
+		}
+		if _, err := s.repository.GetOrCreateAccount(ctx, wallet.Id, currencyCode, domainpb.AccountType_ACCOUNT_TYPE_HOLD); err != nil {
+			return nil, err
+		}
 	}
 
-	_, err = s.repository.GetOrCreateAccount(ctx, wallet.Id, int64(currency.USDTinTRC), domainpb.AccountType_ACCOUNT_TYPE_HOLD)
-	return err
+	return s.repository.GetWalletByID(ctx, wallet.Id)
+}
+
+func (s *Service) GetDepositAddressList(ctx context.Context, userID int64) ([]*domainpb.DepositAddress, error) {
+	if _, err := s.ensureUserAccounts(ctx, userID); err != nil {
+		return nil, err
+	}
+	if _, err := s.ensureUserCryptoDepositAddress(ctx, userID); err != nil {
+		return nil, err
+	}
+
+	return s.repository.ListDepositAddressesByUser(ctx, userID)
+}
+
+func (s *Service) ensureUserCryptoDepositAddress(ctx context.Context, userID int64) (*domainpb.DepositAddress, error) {
+	if s.cryptoWallet == nil || s.cryptoWallet.Client == nil {
+		return nil, fmt.Errorf("%w: crypto wallet client is not configured", ErrInvalidArgument)
+	}
+
+	addressResp, err := s.cryptoWallet.Client.GetOrCreateDepositAddress(ctx, &cryptowalletpb.GetOrCreateDepositAddressRequest{
+		UserId:  userID,
+		Network: cryptoNetwork,
+		Asset:   cryptoAsset,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if addressResp.GetDepositAddress() == nil || addressResp.GetDepositAddress().GetAddress() == "" {
+		return nil, fmt.Errorf("%w: empty deposit address received", ErrInvalidArgument)
+	}
+
+	address, created, err := s.repository.SaveDepositAddress(ctx, userID, addressResp.GetDepositAddress().GetAddress(), cryptoNetwork)
+	if err != nil {
+		return nil, err
+	}
+
+	if created && s.outbox != nil {
+		if err := s.outbox.Send(ctx, "blockchain_watch_address_register", internaldomain.RegisterWatchAddressEvent{
+			UserID:   userID,
+			Address:  address.GetAddress(),
+			Network:  address.GetNetwork(),
+			Asset:    cryptoAsset,
+			Source:   "balance_wallet_provisioning",
+			Provider: "crypto-wallet",
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	return address, nil
 }
 
 func (s *Service) GetWalletTransactions(ctx context.Context, userID int64, currencyCode *int64, limit uint32, offset uint64) ([]*domainpb.LedgerTransaction, error) {
@@ -101,7 +169,7 @@ func (s *Service) CreateTopUp(ctx context.Context, req *clientpb.CreateTopUpRequ
 		return nil, fmt.Errorf("%w: provider_name and idempotency_key are required", ErrInvalidArgument)
 	}
 
-	wallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_USER, req.GetUserId())
+	wallet, err := s.ensureUserAccounts(ctx, req.GetUserId())
 	if err != nil {
 		return nil, err
 	}
@@ -130,24 +198,13 @@ func (s *Service) CreateTopUp(ctx context.Context, req *clientpb.CreateTopUpRequ
 		if req.GetNetwork() != "TRON" {
 			return nil, fmt.Errorf("%w: only TRON network is supported", ErrInvalidArgument)
 		}
-		if s.cryptoWallet == nil || s.cryptoWallet.Client == nil {
-			return nil, fmt.Errorf("%w: crypto wallet client is not configured", ErrInvalidArgument)
-		}
-
-		addressResp, err := s.cryptoWallet.Client.GetOrCreateDepositAddress(ctx, &cryptowalletpb.GetOrCreateDepositAddressRequest{
-			UserId:  req.GetUserId(),
-			Network: req.GetNetwork(),
-			Asset:   "USDT",
-		})
+		address, err := s.ensureUserCryptoDepositAddress(ctx, req.GetUserId())
 		if err != nil {
 			return nil, err
 		}
-		if addressResp.GetDepositAddress() == nil || addressResp.GetDepositAddress().GetAddress() == "" {
-			return nil, fmt.Errorf("%w: empty deposit address received", ErrInvalidArgument)
-		}
 
-		createReq.WalletAddress = addressResp.GetDepositAddress().GetAddress()
-		createReq.Network = req.GetNetwork()
+		createReq.WalletAddress = address.GetAddress()
+		createReq.Network = address.GetNetwork()
 	default:
 		return nil, fmt.Errorf("%w: unsupported provider_type", ErrInvalidArgument)
 	}
@@ -155,19 +212,6 @@ func (s *Service) CreateTopUp(ctx context.Context, req *clientpb.CreateTopUpRequ
 	topUp, err := s.repository.CreateTopUp(ctx, createReq)
 	if err != nil {
 		return nil, err
-	}
-
-	if req.GetProviderType() == domainpb.ProviderType_PROVIDER_TYPE_CRYPTO && s.outbox != nil {
-		if err := s.outbox.Send(ctx, "blockchain_watch_address_register", internaldomain.RegisterWatchAddressEvent{
-			UserID:   req.GetUserId(),
-			Address:  topUp.GetWalletAddress(),
-			Network:  topUp.GetNetwork(),
-			Asset:    "USDT",
-			Source:   "balance_topup",
-			Provider: req.GetProviderName(),
-		}); err != nil {
-			return nil, err
-		}
 	}
 
 	return topUp, nil

@@ -34,6 +34,52 @@ func (r *Repository) GetDepositAddressByUser(ctx context.Context, userID int64, 
 	return &row, nil
 }
 
+func (r *Repository) SaveDepositAddress(ctx context.Context, userID int64, address, network string) (*domainpb.DepositAddress, bool, error) {
+	if existing, err := r.GetDepositAddressByUser(ctx, userID, network); err == nil {
+		if existing.Address == address {
+			return toDepositAddress(*existing), false, nil
+		}
+	} else if err != sql.ErrNoRows {
+		return nil, false, err
+	}
+
+	var row depositAddressRow
+	query := `
+		insert into balance.deposit_address(user_id, address, network)
+		values ($1, $2, $3)
+		on conflict (user_id) do update
+		set address = excluded.address,
+			network = excluded.network,
+			updated_at = now()
+		returning id, user_id, address, network, created_at, updated_at
+	`
+	if err := r.db.GetContext(ctx, &row, query, userID, address, network); err != nil {
+		return nil, false, err
+	}
+
+	return toDepositAddress(row), true, nil
+}
+
+func (r *Repository) ListDepositAddressesByUser(ctx context.Context, userID int64) ([]*domainpb.DepositAddress, error) {
+	rows := make([]depositAddressRow, 0)
+	query := `
+		select id, user_id, address, network, created_at, updated_at
+		from balance.deposit_address
+		where user_id = $1
+		order by created_at
+	`
+	if err := r.db.SelectContext(ctx, &rows, query, userID); err != nil {
+		return nil, err
+	}
+
+	addresses := make([]*domainpb.DepositAddress, 0, len(rows))
+	for _, row := range rows {
+		addresses = append(addresses, toDepositAddress(row))
+	}
+
+	return addresses, nil
+}
+
 func (r *Repository) AssignDepositAddress(ctx context.Context, userID int64, network string, pool []string) (string, error) {
 	if existing, err := r.GetDepositAddressByUser(ctx, userID, network); err == nil {
 		return existing.Address, nil

@@ -8,6 +8,7 @@ option go_package = "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/client;
 
 service BalanceClientService {
   rpc GetWallet(GetWalletRequest) returns (GetWalletResponse);
+  rpc GetDepositAddressList(GetDepositAddressListRequest) returns (GetDepositAddressListResponse);
   rpc GetWalletTransactions(GetWalletTransactionsRequest) returns (GetWalletTransactionsResponse);
   rpc CreateTopUp(CreateTopUpRequest) returns (CreateTopUpResponse);
   rpc GetTopUp(GetTopUpRequest) returns (GetTopUpResponse);
@@ -22,6 +23,14 @@ message GetWalletRequest {
 
 message GetWalletResponse {
   .github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Wallet wallet = 1;
+}
+
+message GetDepositAddressListRequest {
+  int64 user_id = 1;
+}
+
+message GetDepositAddressListResponse {
+  repeated .github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.DepositAddress deposit_addresses = 1;
 }
 
 message GetWalletTransactionsRequest {

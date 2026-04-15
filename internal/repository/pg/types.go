@@ -168,6 +168,17 @@ func toAccount(row accountRow) *domainpb.Account {
 	}
 }
 
+func toDepositAddress(row depositAddressRow) *domainpb.DepositAddress {
+	return &domainpb.DepositAddress{
+		Id:        row.ID,
+		UserId:    row.UserID,
+		Address:   row.Address,
+		Network:   row.Network,
+		CreatedAt: timestamppb.New(row.CreatedAt),
+		UpdatedAt: timestamppb.New(row.UpdatedAt),
+	}
+}
+
 func toLedgerTransaction(row ledgerTransactionRow) *domainpb.LedgerTransaction {
 	tx := &domainpb.LedgerTransaction{
 		Id:             row.ID,
