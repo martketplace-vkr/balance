@@ -47,7 +47,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	// }
 
 	repo := repository.New(pg.DB)
-	service := servicebalance.New(repo, outboxCmp, cryptoWalletClient)
+	service := servicebalance.New(repo, outboxCmp, cryptoWalletClient, cfg.MockProvider.PublicURL)
 	adminHandler := adminTransport.New(service)
 	clientHandler := clientTransport.New(service)
 	orderHandler := orderTransport.New(service)

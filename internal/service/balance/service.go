@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	internaldomain "github.com/martketplace-vkr/balance/internal/domain"
@@ -25,25 +27,34 @@ type userSignUpEvent struct {
 }
 
 const (
-	cryptoNetwork = "TRON"
-	cryptoAsset   = "USDT"
+	cryptoNetwork       = "TRON"
+	cryptoAsset         = "USDT"
+	mockRubSBPProvider  = "MOCK_RUB_SBP"
+	mockRubCardProvider = "MOCK_RUB_CARD"
+	defaultProviderURL  = "http://127.0.0.1:8010"
 )
 
 type Service struct {
-	repository   *repository.Repository
-	outbox       outbox
-	cryptoWallet *cryptowallet.Connector
+	repository            *repository.Repository
+	outbox                outbox
+	cryptoWallet          *cryptowallet.Connector
+	mockProviderPublicURL string
 }
 
 type outbox interface {
 	Send(ctx context.Context, eventType string, payload any) error
 }
 
-func New(repository *repository.Repository, outbox outbox, cryptoWallet *cryptowallet.Connector) *Service {
+func New(repository *repository.Repository, outbox outbox, cryptoWallet *cryptowallet.Connector, mockProviderPublicURL string) *Service {
+	if strings.TrimSpace(mockProviderPublicURL) == "" {
+		mockProviderPublicURL = defaultProviderURL
+	}
+
 	return &Service{
-		repository:   repository,
-		outbox:       outbox,
-		cryptoWallet: cryptoWallet,
+		repository:            repository,
+		outbox:                outbox,
+		cryptoWallet:          cryptoWallet,
+		mockProviderPublicURL: strings.TrimRight(strings.TrimSpace(mockProviderPublicURL), "/"),
 	}
 }
 
@@ -190,7 +201,20 @@ func (s *Service) CreateTopUp(ctx context.Context, req *clientpb.CreateTopUpRequ
 
 	switch req.GetProviderType() {
 	case domainpb.ProviderType_PROVIDER_TYPE_ACQUIRING:
-		createReq.PaymentURL = fmt.Sprintf("https://payments.local/top-ups/%s", req.GetIdempotencyKey())
+		if req.GetMoney().GetCurrencyCode() != int64(currency.RUB) {
+			return nil, fmt.Errorf("%w: only RUB is supported for acquiring top ups", ErrInvalidArgument)
+		}
+		method, err := rubProviderMethod(req.GetProviderName())
+		if err != nil {
+			return nil, err
+		}
+		createReq.Status = domainpb.TopUpStatus_TOP_UP_STATUS_PENDING
+		createReq.PaymentURL = fmt.Sprintf("%s/pay/%s?amount=%s&method=%s",
+			s.mockProviderPublicURL,
+			url.PathEscape(createReq.ExternalID),
+			url.QueryEscape(req.GetMoney().GetAmount()),
+			url.QueryEscape(method),
+		)
 	case domainpb.ProviderType_PROVIDER_TYPE_CRYPTO:
 		if req.GetMoney().GetCurrencyCode() != int64(currency.USDTinTRC) {
 			return nil, fmt.Errorf("%w: only USDT-TRC20 is supported", ErrInvalidArgument)
@@ -233,6 +257,114 @@ func (s *Service) GetTopUpList(ctx context.Context, userID int64, limit uint32, 
 		limit = 50
 	}
 	return s.repository.ListTopUpsByUser(ctx, userID, limit, offset)
+}
+
+func (s *Service) ListTopUps(ctx context.Context, req *adminpb.ListTopUpsRequest) ([]*domainpb.TopUp, error) {
+	limit := req.GetLimit()
+	if limit == 0 {
+		limit = 50
+	}
+
+	filter := repository.TopUpListFilter{
+		Limit:  limit,
+		Offset: req.GetOffset(),
+	}
+	if req.CurrencyCode != nil {
+		currencyCode := req.GetCurrencyCode()
+		filter.CurrencyCode = &currencyCode
+	}
+	if req.ProviderType != nil {
+		providerType := req.GetProviderType()
+		filter.ProviderType = &providerType
+	}
+	if req.Status != nil {
+		status := req.GetStatus()
+		filter.Status = &status
+	}
+
+	return s.repository.ListTopUps(ctx, filter)
+}
+
+func (s *Service) ConfirmTopUp(ctx context.Context, req *adminpb.ConfirmTopUpRequest) (*domainpb.TopUp, *domainpb.LedgerTransaction, error) {
+	externalID := strings.TrimSpace(req.GetExternalId())
+	providerName := strings.TrimSpace(req.GetProviderName())
+	webhookEventID := strings.TrimSpace(req.GetWebhookEventId())
+	if externalID == "" || providerName == "" || webhookEventID == "" {
+		return nil, nil, fmt.Errorf("%w: external_id, provider_name and webhook_event_id are required", ErrInvalidArgument)
+	}
+	if req.GetMoney() == nil {
+		return nil, nil, fmt.Errorf("%w: money is required", ErrInvalidArgument)
+	}
+	amount, err := parsePositiveAmount(req.GetMoney().GetAmount())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	topUp, err := s.repository.GetTopUpByProviderExternalID(ctx, domainpb.ProviderType_PROVIDER_TYPE_ACQUIRING, providerName, externalID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil, ErrTopUpNotFound
+		}
+		return nil, nil, err
+	}
+	if topUp.GetMoney().GetCurrencyCode() != int64(currency.RUB) || req.GetMoney().GetCurrencyCode() != int64(currency.RUB) {
+		return nil, nil, fmt.Errorf("%w: only RUB confirmation is supported", ErrInvalidArgument)
+	}
+	topUpAmount, err := parsePositiveAmount(topUp.GetMoney().GetAmount())
+	if err != nil {
+		return nil, nil, err
+	}
+	if topUpAmount.Cmp(amount) != 0 {
+		return nil, nil, fmt.Errorf("%w: top up amount mismatch", ErrInvalidArgument)
+	}
+	wasConfirmed := topUp.GetStatus() == domainpb.TopUpStatus_TOP_UP_STATUS_CONFIRMED
+	if wasConfirmed {
+		return topUp, nil, nil
+	}
+	if topUp.GetStatus() != domainpb.TopUpStatus_TOP_UP_STATUS_PENDING && topUp.GetStatus() != domainpb.TopUpStatus_TOP_UP_STATUS_CREATED {
+		return nil, nil, fmt.Errorf("%w: top up is not confirmable", ErrInvalidArgument)
+	}
+
+	userWallet, err := s.repository.GetWalletByID(ctx, topUp.GetWalletId())
+	if err != nil {
+		return nil, nil, err
+	}
+	systemWallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_SYSTEM, 0)
+	if err != nil {
+		return nil, nil, err
+	}
+	userAccount, err := s.repository.GetOrCreateAccount(ctx, userWallet.GetId(), int64(currency.RUB), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE)
+	if err != nil {
+		return nil, nil, err
+	}
+	systemAccount, err := s.repository.GetOrCreateAccount(ctx, systemWallet.GetId(), int64(currency.RUB), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ledgerKey := "mock-provider-topup-" + webhookEventID
+	confirmedTopUp, transaction, err := s.repository.ConfirmTopUp(ctx, repository.TopUpConfirmRequest{
+		TopUpID:         topUp.GetId(),
+		IdempotencyKey:  ledgerKey,
+		Reason:          "confirmed mock provider RUB top up",
+		DebitAccountID:  systemAccount.GetId(),
+		CreditAccountID: userAccount.GetId(),
+		Amount:          formatAmount(amount),
+		ExternalStatus:  "confirmed",
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if s.outbox != nil && !wasConfirmed {
+		if err := s.outbox.Send(ctx, "balance_topup_completed", struct {
+			UserID int64 `json:"user_id"`
+		}{UserID: userWallet.GetOwnerId()}); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return confirmedTopUp, transaction, nil
 }
 
 func (s *Service) CreateWithdrawal(ctx context.Context, req *clientpb.CreateWithdrawalRequest) (*domainpb.Withdrawal, error) {

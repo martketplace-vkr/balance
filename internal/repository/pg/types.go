@@ -112,6 +112,24 @@ type LedgerWriteRequest struct {
 	PostedAt        time.Time
 }
 
+type TopUpListFilter struct {
+	CurrencyCode *int64
+	ProviderType *domainpb.ProviderType
+	Status       *domainpb.TopUpStatus
+	Limit        uint32
+	Offset       uint64
+}
+
+type TopUpConfirmRequest struct {
+	TopUpID         int64
+	IdempotencyKey  string
+	Reason          string
+	DebitAccountID  int64
+	CreditAccountID int64
+	Amount          string
+	ExternalStatus  string
+}
+
 type TopUpCreateRequest struct {
 	WalletID       int64
 	CurrencyCode   int64

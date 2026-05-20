@@ -2,6 +2,8 @@ package pg
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -51,6 +53,67 @@ func (r *Repository) ListTopUpsByUser(ctx context.Context, userID int64, limit u
 	return result, nil
 }
 
+func (r *Repository) ListTopUps(ctx context.Context, filter TopUpListFilter) ([]*domainpb.TopUp, error) {
+	limit := filter.Limit
+	if limit == 0 {
+		limit = 50
+	}
+
+	var currencyCode any
+	if filter.CurrencyCode != nil {
+		currencyCode = *filter.CurrencyCode
+	}
+	var providerType any
+	if filter.ProviderType != nil {
+		providerType = int32(*filter.ProviderType)
+	}
+	var status any
+	if filter.Status != nil {
+		status = int32(*filter.Status)
+	}
+
+	rows := make([]topUpRow, 0)
+	query := `
+		select
+			t.id, t.wallet_id, t.currency_code, t.amount::text as amount, t.provider_type, t.provider_name, t.status,
+			t.external_id, t.external_status, t.payment_url, t.wallet_address, t.wallet_tag, t.network, t.tx_hash,
+			t.idempotency_key, t.expires_at, t.paid_at, t.confirmed_at, t.created_at, t.updated_at
+		from balance.top_up t
+		where ($1::bigint is null or t.currency_code = $1)
+			and ($2::smallint is null or t.provider_type = $2)
+			and ($3::smallint is null or t.status = $3)
+		order by t.id desc
+		limit $4 offset $5
+	`
+	if err := r.db.SelectContext(ctx, &rows, query, currencyCode, providerType, status, int64(limit), int64(filter.Offset)); err != nil {
+		return nil, err
+	}
+
+	result := make([]*domainpb.TopUp, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, toTopUp(row))
+	}
+
+	return result, nil
+}
+
+func (r *Repository) GetTopUpByProviderExternalID(ctx context.Context, providerType domainpb.ProviderType, providerName, externalID string) (*domainpb.TopUp, error) {
+	var row topUpRow
+	query := `
+		select
+			t.id, t.wallet_id, t.currency_code, t.amount::text as amount, t.provider_type, t.provider_name, t.status,
+			t.external_id, t.external_status, t.payment_url, t.wallet_address, t.wallet_tag, t.network, t.tx_hash,
+			t.idempotency_key, t.expires_at, t.paid_at, t.confirmed_at, t.created_at, t.updated_at
+		from balance.top_up t
+		where t.provider_type = $1 and t.provider_name = $2 and t.external_id = $3
+	`
+	if err := r.db.GetContext(ctx, &row, query, int32(providerType), providerName, externalID); err != nil {
+		return nil, err
+	}
+
+	return toTopUp(row), nil
+}
+
 func (r *Repository) CreateTopUp(ctx context.Context, req TopUpCreateRequest) (*domainpb.TopUp, error) {
 	query := `
 		insert into balance.top_up(
@@ -96,6 +159,73 @@ func (r *Repository) CreateTopUp(ctx context.Context, req TopUpCreateRequest) (*
 	}
 
 	return toTopUp(row), nil
+}
+
+func (r *Repository) ConfirmTopUp(ctx context.Context, req TopUpConfirmRequest) (*domainpb.TopUp, *domainpb.LedgerTransaction, error) {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var topUpRow topUpRow
+	lockQuery := `
+		select
+			id, wallet_id, currency_code, amount::text as amount, provider_type, provider_name, status,
+			external_id, external_status, payment_url, wallet_address, wallet_tag, network, tx_hash,
+			idempotency_key, expires_at, paid_at, confirmed_at, created_at, updated_at
+		from balance.top_up
+		where id = $1
+		for update
+	`
+	if err := tx.GetContext(ctx, &topUpRow, lockQuery, req.TopUpID); err != nil {
+		return nil, nil, err
+	}
+
+	transactionID, err := r.getOrCreateLedgerTransactionInTx(ctx, tx, LedgerWriteRequest{
+		IdempotencyKey:  req.IdempotencyKey,
+		Type:            domainpb.LedgerTransactionType_LEDGER_TRANSACTION_TYPE_TOP_UP,
+		Status:          domainpb.LedgerTransactionStatus_LEDGER_TRANSACTION_STATUS_POSTED,
+		Reason:          req.Reason,
+		ReferenceType:   domainpb.ReferenceType_REFERENCE_TYPE_TOP_UP,
+		ReferenceID:     topUpRow.ExternalID.String,
+		DebitAccountID:  req.DebitAccountID,
+		CreditAccountID: req.CreditAccountID,
+		Amount:          req.Amount,
+		PostedAt:        time.Now(),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	updateQuery := `
+		update balance.top_up
+		set
+			status = $2,
+			external_status = nullif($3, ''),
+			paid_at = coalesce(paid_at, now()),
+			confirmed_at = coalesce(confirmed_at, now()),
+			updated_at = now()
+		where id = $1
+		returning
+			id, wallet_id, currency_code, amount::text as amount, provider_type, provider_name, status,
+			external_id, external_status, payment_url, wallet_address, wallet_tag, network, tx_hash,
+			idempotency_key, expires_at, paid_at, confirmed_at, created_at, updated_at
+	`
+	if err := tx.GetContext(ctx, &topUpRow, updateQuery, req.TopUpID, int32(domainpb.TopUpStatus_TOP_UP_STATUS_CONFIRMED), req.ExternalStatus); err != nil {
+		return nil, nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, err
+	}
+
+	transaction, err := r.GetTransaction(ctx, transactionID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return toTopUp(topUpRow), transaction, nil
 }
 
 func (r *Repository) GetWithdrawalByUser(ctx context.Context, userID, withdrawalID int64) (*domainpb.Withdrawal, error) {
@@ -306,4 +436,48 @@ func (r *Repository) PostLedgerTransaction(ctx context.Context, req LedgerWriteR
 	}
 
 	return r.GetTransaction(ctx, transactionID)
+}
+
+func (r *Repository) getOrCreateLedgerTransactionInTx(ctx context.Context, tx *sqlx.Tx, req LedgerWriteRequest) (int64, error) {
+	var existingID int64
+	if err := tx.GetContext(ctx, &existingID, `select id from balance.ledger_transaction where idempotency_key = $1`, req.IdempotencyKey); err == nil {
+		return existingID, nil
+	} else if err != nil && err != sql.ErrNoRows {
+		return 0, err
+	}
+
+	insertTx := `
+		insert into balance.ledger_transaction(
+			idempotency_key, transaction_type, status, reason, reference_type, reference_id, posted_at
+		)
+		values ($1, $2, $3, nullif($4, ''), $5, nullif($6, ''), $7)
+		returning id
+	`
+	if err := tx.GetContext(
+		ctx,
+		&existingID,
+		insertTx,
+		req.IdempotencyKey,
+		int32(req.Type),
+		int32(req.Status),
+		req.Reason,
+		int32(req.ReferenceType),
+		req.ReferenceID,
+		req.PostedAt,
+	); err != nil {
+		return 0, err
+	}
+
+	insertEntry := `
+		insert into balance.entry(transaction_id, account_id, direction, amount)
+		values ($1, $2, $3, $4)
+	`
+	if _, err := tx.ExecContext(ctx, insertEntry, existingID, req.DebitAccountID, int32(domainpb.EntryDirection_ENTRY_DIRECTION_DEBIT), req.Amount); err != nil {
+		return 0, err
+	}
+	if _, err := tx.ExecContext(ctx, insertEntry, existingID, req.CreditAccountID, int32(domainpb.EntryDirection_ENTRY_DIRECTION_CREDIT), req.Amount); err != nil {
+		return 0, err
+	}
+
+	return existingID, nil
 }

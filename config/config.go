@@ -10,10 +10,15 @@ import (
 )
 
 type Config struct {
-	Grpc         grpc.Config                 `validate:"required"`
-	Postgres     pgxsqlxcomponent.Config     `validate:"required"`
-	Inbox        inbox.Config                `validate:"required"`
-	Outbox       outbox.Config               `validate:"required"`
-	CryptoWallet cryptowallet.Config         `validate:"required"`
+	Grpc         grpc.Config             `validate:"required"`
+	Postgres     pgxsqlxcomponent.Config `validate:"required"`
+	Inbox        inbox.Config            `validate:"required"`
+	Outbox       outbox.Config           `validate:"required"`
+	CryptoWallet cryptowallet.Config     `validate:"required"`
+	MockProvider MockProviderConfig
 	Kafka        kafkaconnector.ClientConfig `validate:"required"`
+}
+
+type MockProviderConfig struct {
+	PublicURL string `default:"http://127.0.0.1:8000"`
 }

@@ -3,6 +3,7 @@ package balance
 import (
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 func parseAmount(raw string) (*big.Rat, error) {
@@ -40,4 +41,15 @@ func absRat(value *big.Rat) *big.Rat {
 	}
 
 	return new(big.Rat).Neg(value)
+}
+
+func rubProviderMethod(providerName string) (string, error) {
+	switch strings.TrimSpace(providerName) {
+	case mockRubSBPProvider:
+		return "sbp", nil
+	case mockRubCardProvider:
+		return "card", nil
+	default:
+		return "", fmt.Errorf("%w: unsupported RUB acquiring provider", ErrInvalidArgument)
+	}
 }

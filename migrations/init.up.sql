@@ -30,7 +30,7 @@ create table if not exists balance.ledger_transaction (
     transaction_type smallint not null,
     status smallint not null,
     reason text,
-    reference_type text,
+    reference_type smallint not null,
     reference_id text,
     metadata jsonb not null default '{}'::jsonb,
     created_at timestamptz not null default now(),

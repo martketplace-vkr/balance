@@ -58,3 +58,21 @@ func (h *Handler) PostAdjustment(ctx context.Context, req *adminpb.PostAdjustmen
 	}
 	return &adminpb.PostAdjustmentResponse{Transaction: transaction}, nil
 }
+
+func (h *Handler) ListTopUps(ctx context.Context, req *adminpb.ListTopUpsRequest) (*adminpb.ListTopUpsResponse, error) {
+	topUps, err := h.service.ListTopUps(ctx, req)
+	if err != nil {
+		return nil, clienthandler.ToStatusError(err)
+	}
+
+	return &adminpb.ListTopUpsResponse{TopUps: topUps}, nil
+}
+
+func (h *Handler) ConfirmTopUp(ctx context.Context, req *adminpb.ConfirmTopUpRequest) (*adminpb.ConfirmTopUpResponse, error) {
+	topUp, transaction, err := h.service.ConfirmTopUp(ctx, req)
+	if err != nil {
+		return nil, clienthandler.ToStatusError(err)
+	}
+
+	return &adminpb.ConfirmTopUpResponse{TopUp: topUp, Transaction: transaction}, nil
+}
