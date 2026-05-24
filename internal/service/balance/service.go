@@ -465,7 +465,7 @@ func (s *Service) RefundFunds(ctx context.Context, req *orderpb.RefundFundsReque
 }
 
 func (s *Service) GetAdminWallet(ctx context.Context, ownerType domainpb.WalletOwnerType, ownerID int64) (*domainpb.Wallet, error) {
-	wallet, err := s.repository.GetWalletByOwner(ctx, ownerType, ownerID)
+	wallet, err := s.repository.EnsureWallet(ctx, ownerType, ownerID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrWalletNotFound
@@ -473,6 +473,26 @@ func (s *Service) GetAdminWallet(ctx context.Context, ownerType domainpb.WalletO
 		return nil, err
 	}
 	return wallet, nil
+}
+
+func (s *Service) GetAdminWalletTransactions(ctx context.Context, req *adminpb.GetWalletTransactionsRequest) ([]*domainpb.LedgerTransaction, error) {
+	wallet, err := s.repository.EnsureWallet(ctx, req.GetOwnerType(), req.GetOwnerId())
+	if err != nil {
+		return nil, err
+	}
+
+	limit := req.GetLimit()
+	if limit == 0 {
+		limit = 50
+	}
+
+	var currencyCode *int64
+	if req.CurrencyCode != nil {
+		value := req.GetCurrencyCode()
+		currencyCode = &value
+	}
+
+	return s.repository.ListWalletTransactions(ctx, wallet.Id, currencyCode, limit, req.GetOffset())
 }
 
 func (s *Service) GetTransaction(ctx context.Context, transactionID int64) (*domainpb.LedgerTransaction, error) {

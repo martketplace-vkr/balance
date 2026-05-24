@@ -118,6 +118,126 @@ func (x *GetWalletResponse) GetWallet() *domain.Wallet {
 	return nil
 }
 
+type GetWalletTransactionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OwnerType     domain.WalletOwnerType `protobuf:"varint,1,opt,name=owner_type,json=ownerType,proto3,enum=github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType" json:"owner_type,omitempty"`
+	OwnerId       int64                  `protobuf:"varint,2,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	CurrencyCode  *int64                 `protobuf:"varint,3,opt,name=currency_code,json=currencyCode,proto3,oneof" json:"currency_code,omitempty"`
+	Limit         uint32                 `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        uint64                 `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWalletTransactionsRequest) Reset() {
+	*x = GetWalletTransactionsRequest{}
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWalletTransactionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWalletTransactionsRequest) ProtoMessage() {}
+
+func (x *GetWalletTransactionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWalletTransactionsRequest.ProtoReflect.Descriptor instead.
+func (*GetWalletTransactionsRequest) Descriptor() ([]byte, []int) {
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetWalletTransactionsRequest) GetOwnerType() domain.WalletOwnerType {
+	if x != nil {
+		return x.OwnerType
+	}
+	return domain.WalletOwnerType(0)
+}
+
+func (x *GetWalletTransactionsRequest) GetOwnerId() int64 {
+	if x != nil {
+		return x.OwnerId
+	}
+	return 0
+}
+
+func (x *GetWalletTransactionsRequest) GetCurrencyCode() int64 {
+	if x != nil && x.CurrencyCode != nil {
+		return *x.CurrencyCode
+	}
+	return 0
+}
+
+func (x *GetWalletTransactionsRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GetWalletTransactionsRequest) GetOffset() uint64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type GetWalletTransactionsResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Transactions  []*domain.LedgerTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWalletTransactionsResponse) Reset() {
+	*x = GetWalletTransactionsResponse{}
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWalletTransactionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWalletTransactionsResponse) ProtoMessage() {}
+
+func (x *GetWalletTransactionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWalletTransactionsResponse.ProtoReflect.Descriptor instead.
+func (*GetWalletTransactionsResponse) Descriptor() ([]byte, []int) {
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetWalletTransactionsResponse) GetTransactions() []*domain.LedgerTransaction {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
 type GetTransactionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TransactionId int64                  `protobuf:"varint,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
@@ -127,7 +247,7 @@ type GetTransactionRequest struct {
 
 func (x *GetTransactionRequest) Reset() {
 	*x = GetTransactionRequest{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[2]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -139,7 +259,7 @@ func (x *GetTransactionRequest) String() string {
 func (*GetTransactionRequest) ProtoMessage() {}
 
 func (x *GetTransactionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[2]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -152,7 +272,7 @@ func (x *GetTransactionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransactionRequest.ProtoReflect.Descriptor instead.
 func (*GetTransactionRequest) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{2}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetTransactionRequest) GetTransactionId() int64 {
@@ -171,7 +291,7 @@ type GetTransactionResponse struct {
 
 func (x *GetTransactionResponse) Reset() {
 	*x = GetTransactionResponse{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[3]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -183,7 +303,7 @@ func (x *GetTransactionResponse) String() string {
 func (*GetTransactionResponse) ProtoMessage() {}
 
 func (x *GetTransactionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[3]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -196,7 +316,7 @@ func (x *GetTransactionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransactionResponse.ProtoReflect.Descriptor instead.
 func (*GetTransactionResponse) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{3}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetTransactionResponse) GetTransaction() *domain.LedgerTransaction {
@@ -219,7 +339,7 @@ type PostAdjustmentRequest struct {
 
 func (x *PostAdjustmentRequest) Reset() {
 	*x = PostAdjustmentRequest{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[4]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -231,7 +351,7 @@ func (x *PostAdjustmentRequest) String() string {
 func (*PostAdjustmentRequest) ProtoMessage() {}
 
 func (x *PostAdjustmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[4]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -244,7 +364,7 @@ func (x *PostAdjustmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostAdjustmentRequest.ProtoReflect.Descriptor instead.
 func (*PostAdjustmentRequest) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{4}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PostAdjustmentRequest) GetOwnerType() domain.WalletOwnerType {
@@ -291,7 +411,7 @@ type PostAdjustmentResponse struct {
 
 func (x *PostAdjustmentResponse) Reset() {
 	*x = PostAdjustmentResponse{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[5]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +423,7 @@ func (x *PostAdjustmentResponse) String() string {
 func (*PostAdjustmentResponse) ProtoMessage() {}
 
 func (x *PostAdjustmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[5]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +436,7 @@ func (x *PostAdjustmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostAdjustmentResponse.ProtoReflect.Descriptor instead.
 func (*PostAdjustmentResponse) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{5}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PostAdjustmentResponse) GetTransaction() *domain.LedgerTransaction {
@@ -339,7 +459,7 @@ type ListTopUpsRequest struct {
 
 func (x *ListTopUpsRequest) Reset() {
 	*x = ListTopUpsRequest{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[6]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -351,7 +471,7 @@ func (x *ListTopUpsRequest) String() string {
 func (*ListTopUpsRequest) ProtoMessage() {}
 
 func (x *ListTopUpsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[6]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -364,7 +484,7 @@ func (x *ListTopUpsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTopUpsRequest.ProtoReflect.Descriptor instead.
 func (*ListTopUpsRequest) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{6}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListTopUpsRequest) GetCurrencyCode() int64 {
@@ -411,7 +531,7 @@ type ListTopUpsResponse struct {
 
 func (x *ListTopUpsResponse) Reset() {
 	*x = ListTopUpsResponse{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[7]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -423,7 +543,7 @@ func (x *ListTopUpsResponse) String() string {
 func (*ListTopUpsResponse) ProtoMessage() {}
 
 func (x *ListTopUpsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[7]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +556,7 @@ func (x *ListTopUpsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTopUpsResponse.ProtoReflect.Descriptor instead.
 func (*ListTopUpsResponse) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{7}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListTopUpsResponse) GetTopUps() []*domain.TopUp {
@@ -458,7 +578,7 @@ type ConfirmTopUpRequest struct {
 
 func (x *ConfirmTopUpRequest) Reset() {
 	*x = ConfirmTopUpRequest{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[8]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -470,7 +590,7 @@ func (x *ConfirmTopUpRequest) String() string {
 func (*ConfirmTopUpRequest) ProtoMessage() {}
 
 func (x *ConfirmTopUpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[8]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -483,7 +603,7 @@ func (x *ConfirmTopUpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmTopUpRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmTopUpRequest) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{8}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ConfirmTopUpRequest) GetExternalId() string {
@@ -524,7 +644,7 @@ type ConfirmTopUpResponse struct {
 
 func (x *ConfirmTopUpResponse) Reset() {
 	*x = ConfirmTopUpResponse{}
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[9]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -536,7 +656,7 @@ func (x *ConfirmTopUpResponse) String() string {
 func (*ConfirmTopUpResponse) ProtoMessage() {}
 
 func (x *ConfirmTopUpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[9]
+	mi := &file_v1_admin_balance_admin_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -549,7 +669,7 @@ func (x *ConfirmTopUpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmTopUpResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmTopUpResponse) Descriptor() ([]byte, []int) {
-	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{9}
+	return file_v1_admin_balance_admin_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ConfirmTopUpResponse) GetTopUp() *domain.TopUp {
@@ -576,7 +696,17 @@ const file_v1_admin_balance_admin_service_proto_rawDesc = "" +
 	"owner_type\x18\x01 \x01(\x0e2K.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerTypeR\townerType\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\x03R\aownerId\"o\n" +
 	"\x11GetWalletResponse\x12Z\n" +
-	"\x06wallet\x18\x01 \x01(\v2B.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletR\x06wallet\">\n" +
+	"\x06wallet\x18\x01 \x01(\v2B.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletR\x06wallet\"\x8f\x02\n" +
+	"\x1cGetWalletTransactionsRequest\x12j\n" +
+	"\n" +
+	"owner_type\x18\x01 \x01(\x0e2K.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerTypeR\townerType\x12\x19\n" +
+	"\bowner_id\x18\x02 \x01(\x03R\aownerId\x12(\n" +
+	"\rcurrency_code\x18\x03 \x01(\x03H\x00R\fcurrencyCode\x88\x01\x01\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\rR\x05limit\x12\x16\n" +
+	"\x06offset\x18\x05 \x01(\x04R\x06offsetB\x10\n" +
+	"\x0e_currency_code\"\x92\x01\n" +
+	"\x1dGetWalletTransactionsResponse\x12q\n" +
+	"\ftransactions\x18\x01 \x03(\v2M.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransactionR\ftransactions\">\n" +
 	"\x15GetTransactionRequest\x12%\n" +
 	"\x0etransaction_id\x18\x01 \x01(\x03R\rtransactionId\"\x89\x01\n" +
 	"\x16GetTransactionResponse\x12o\n" +
@@ -609,9 +739,10 @@ const file_v1_admin_balance_admin_service_proto_rawDesc = "" +
 	"\x10webhook_event_id\x18\x04 \x01(\tR\x0ewebhookEventId\"\xe1\x01\n" +
 	"\x14ConfirmTopUpResponse\x12X\n" +
 	"\x06top_up\x18\x01 \x01(\v2A.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUpR\x05topUp\x12o\n" +
-	"\vtransaction\x18\x02 \x01(\v2M.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransactionR\vtransaction2\x8c\a\n" +
+	"\vtransaction\x18\x02 \x01(\v2M.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransactionR\vtransaction2\xd9\b\n" +
 	"\x13BalanceAdminService\x12\xa6\x01\n" +
-	"\tGetWallet\x12K.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest\x1aL.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse\x12\xb5\x01\n" +
+	"\tGetWallet\x12K.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest\x1aL.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse\x12\xca\x01\n" +
+	"\x15GetWalletTransactions\x12W.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsRequest\x1aX.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsResponse\x12\xb5\x01\n" +
 	"\x0eGetTransaction\x12P.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionRequest\x1aQ.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionResponse\x12\xb5\x01\n" +
 	"\x0ePostAdjustment\x12P.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest\x1aQ.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentResponse\x12\xa9\x01\n" +
 	"\n" +
@@ -630,54 +761,60 @@ func file_v1_admin_balance_admin_service_proto_rawDescGZIP() []byte {
 	return file_v1_admin_balance_admin_service_proto_rawDescData
 }
 
-var file_v1_admin_balance_admin_service_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_v1_admin_balance_admin_service_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_v1_admin_balance_admin_service_proto_goTypes = []any{
-	(*GetWalletRequest)(nil),         // 0: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest
-	(*GetWalletResponse)(nil),        // 1: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse
-	(*GetTransactionRequest)(nil),    // 2: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionRequest
-	(*GetTransactionResponse)(nil),   // 3: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionResponse
-	(*PostAdjustmentRequest)(nil),    // 4: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest
-	(*PostAdjustmentResponse)(nil),   // 5: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentResponse
-	(*ListTopUpsRequest)(nil),        // 6: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest
-	(*ListTopUpsResponse)(nil),       // 7: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsResponse
-	(*ConfirmTopUpRequest)(nil),      // 8: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpRequest
-	(*ConfirmTopUpResponse)(nil),     // 9: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse
-	(domain.WalletOwnerType)(0),      // 10: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType
-	(*domain.Wallet)(nil),            // 11: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Wallet
-	(*domain.LedgerTransaction)(nil), // 12: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
-	(*domain.Money)(nil),             // 13: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
-	(domain.ProviderType)(0),         // 14: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.ProviderType
-	(domain.TopUpStatus)(0),          // 15: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUpStatus
-	(*domain.TopUp)(nil),             // 16: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUp
+	(*GetWalletRequest)(nil),              // 0: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest
+	(*GetWalletResponse)(nil),             // 1: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse
+	(*GetWalletTransactionsRequest)(nil),  // 2: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsRequest
+	(*GetWalletTransactionsResponse)(nil), // 3: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsResponse
+	(*GetTransactionRequest)(nil),         // 4: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionRequest
+	(*GetTransactionResponse)(nil),        // 5: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionResponse
+	(*PostAdjustmentRequest)(nil),         // 6: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest
+	(*PostAdjustmentResponse)(nil),        // 7: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentResponse
+	(*ListTopUpsRequest)(nil),             // 8: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest
+	(*ListTopUpsResponse)(nil),            // 9: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsResponse
+	(*ConfirmTopUpRequest)(nil),           // 10: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpRequest
+	(*ConfirmTopUpResponse)(nil),          // 11: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse
+	(domain.WalletOwnerType)(0),           // 12: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType
+	(*domain.Wallet)(nil),                 // 13: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Wallet
+	(*domain.LedgerTransaction)(nil),      // 14: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	(*domain.Money)(nil),                  // 15: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
+	(domain.ProviderType)(0),              // 16: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.ProviderType
+	(domain.TopUpStatus)(0),               // 17: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUpStatus
+	(*domain.TopUp)(nil),                  // 18: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUp
 }
 var file_v1_admin_balance_admin_service_proto_depIdxs = []int32{
-	10, // 0: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest.owner_type:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType
-	11, // 1: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse.wallet:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Wallet
-	12, // 2: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
-	10, // 3: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest.owner_type:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType
-	13, // 4: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
-	12, // 5: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
-	14, // 6: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest.provider_type:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.ProviderType
-	15, // 7: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest.status:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUpStatus
-	16, // 8: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsResponse.top_ups:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUp
-	13, // 9: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
-	16, // 10: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse.top_up:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUp
-	12, // 11: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
-	0,  // 12: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetWallet:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest
-	2,  // 13: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetTransaction:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionRequest
-	4,  // 14: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.PostAdjustment:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest
-	6,  // 15: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ListTopUps:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest
-	8,  // 16: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ConfirmTopUp:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpRequest
-	1,  // 17: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetWallet:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse
-	3,  // 18: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetTransaction:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionResponse
-	5,  // 19: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.PostAdjustment:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentResponse
-	7,  // 20: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ListTopUps:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsResponse
-	9,  // 21: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ConfirmTopUp:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse
-	17, // [17:22] is the sub-list for method output_type
-	12, // [12:17] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	12, // 0: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest.owner_type:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType
+	13, // 1: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse.wallet:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Wallet
+	12, // 2: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsRequest.owner_type:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType
+	14, // 3: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsResponse.transactions:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	14, // 4: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	12, // 5: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest.owner_type:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.WalletOwnerType
+	15, // 6: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
+	14, // 7: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	16, // 8: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest.provider_type:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.ProviderType
+	17, // 9: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest.status:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUpStatus
+	18, // 10: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsResponse.top_ups:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUp
+	15, // 11: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
+	18, // 12: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse.top_up:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.TopUp
+	14, // 13: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	0,  // 14: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetWallet:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletRequest
+	2,  // 15: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetWalletTransactions:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsRequest
+	4,  // 16: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetTransaction:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionRequest
+	6,  // 17: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.PostAdjustment:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentRequest
+	8,  // 18: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ListTopUps:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsRequest
+	10, // 19: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ConfirmTopUp:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpRequest
+	1,  // 20: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetWallet:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletResponse
+	3,  // 21: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetWalletTransactions:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetWalletTransactionsResponse
+	5,  // 22: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.GetTransaction:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.GetTransactionResponse
+	7,  // 23: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.PostAdjustment:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.PostAdjustmentResponse
+	9,  // 24: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ListTopUps:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ListTopUpsResponse
+	11, // 25: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService.ConfirmTopUp:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.ConfirmTopUpResponse
+	20, // [20:26] is the sub-list for method output_type
+	14, // [14:20] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_v1_admin_balance_admin_service_proto_init() }
@@ -685,14 +822,15 @@ func file_v1_admin_balance_admin_service_proto_init() {
 	if File_v1_admin_balance_admin_service_proto != nil {
 		return
 	}
-	file_v1_admin_balance_admin_service_proto_msgTypes[6].OneofWrappers = []any{}
+	file_v1_admin_balance_admin_service_proto_msgTypes[2].OneofWrappers = []any{}
+	file_v1_admin_balance_admin_service_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_admin_balance_admin_service_proto_rawDesc), len(file_v1_admin_balance_admin_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

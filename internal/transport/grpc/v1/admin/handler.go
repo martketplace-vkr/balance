@@ -5,6 +5,7 @@ import (
 
 	clienthandler "github.com/martketplace-vkr/balance/internal/transport/grpc/v1/client"
 	adminpb "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/admin"
+	domainpb "github.com/martketplace-vkr/balance/pkg/api/grpc/v1/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -19,10 +20,7 @@ func New(service service) *Handler {
 }
 
 func (h *Handler) GetWallet(ctx context.Context, req *adminpb.GetWalletRequest) (*adminpb.GetWalletResponse, error) {
-	if req.GetOwnerType() == 0 {
-		return nil, status.Error(codes.InvalidArgument, "owner_type is required")
-	}
-	if err := clienthandler.ValidateID("owner_id", req.GetOwnerId()); err != nil {
+	if err := validateOwner(req.GetOwnerType(), req.GetOwnerId()); err != nil {
 		return nil, err
 	}
 
@@ -31,6 +29,18 @@ func (h *Handler) GetWallet(ctx context.Context, req *adminpb.GetWalletRequest) 
 		return nil, clienthandler.ToStatusError(err)
 	}
 	return &adminpb.GetWalletResponse{Wallet: wallet}, nil
+}
+
+func (h *Handler) GetWalletTransactions(ctx context.Context, req *adminpb.GetWalletTransactionsRequest) (*adminpb.GetWalletTransactionsResponse, error) {
+	if err := validateOwner(req.GetOwnerType(), req.GetOwnerId()); err != nil {
+		return nil, err
+	}
+
+	transactions, err := h.service.GetAdminWalletTransactions(ctx, req)
+	if err != nil {
+		return nil, clienthandler.ToStatusError(err)
+	}
+	return &adminpb.GetWalletTransactionsResponse{Transactions: transactions}, nil
 }
 
 func (h *Handler) GetTransaction(ctx context.Context, req *adminpb.GetTransactionRequest) (*adminpb.GetTransactionResponse, error) {
@@ -42,6 +52,17 @@ func (h *Handler) GetTransaction(ctx context.Context, req *adminpb.GetTransactio
 		return nil, clienthandler.ToStatusError(err)
 	}
 	return &adminpb.GetTransactionResponse{Transaction: transaction}, nil
+}
+
+func validateOwner(ownerType domainpb.WalletOwnerType, ownerID int64) error {
+	if ownerType == 0 {
+		return status.Error(codes.InvalidArgument, "owner_type is required")
+	}
+	if ownerType == domainpb.WalletOwnerType_WALLET_OWNER_TYPE_SYSTEM && ownerID == 0 {
+		return nil
+	}
+
+	return clienthandler.ValidateID("owner_id", ownerID)
 }
 
 func (h *Handler) PostAdjustment(ctx context.Context, req *adminpb.PostAdjustmentRequest) (*adminpb.PostAdjustmentResponse, error) {

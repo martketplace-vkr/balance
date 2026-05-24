@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BalanceAdminService_GetWallet_FullMethodName      = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/GetWallet"
-	BalanceAdminService_GetTransaction_FullMethodName = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/GetTransaction"
-	BalanceAdminService_PostAdjustment_FullMethodName = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/PostAdjustment"
-	BalanceAdminService_ListTopUps_FullMethodName     = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/ListTopUps"
-	BalanceAdminService_ConfirmTopUp_FullMethodName   = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/ConfirmTopUp"
+	BalanceAdminService_GetWallet_FullMethodName             = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/GetWallet"
+	BalanceAdminService_GetWalletTransactions_FullMethodName = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/GetWalletTransactions"
+	BalanceAdminService_GetTransaction_FullMethodName        = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/GetTransaction"
+	BalanceAdminService_PostAdjustment_FullMethodName        = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/PostAdjustment"
+	BalanceAdminService_ListTopUps_FullMethodName            = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/ListTopUps"
+	BalanceAdminService_ConfirmTopUp_FullMethodName          = "/github.com.martketplace.vkr.balance.pkg.api.grpc.v1.admin.BalanceAdminService/ConfirmTopUp"
 )
 
 // BalanceAdminServiceClient is the client API for BalanceAdminService service.
@@ -31,6 +32,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BalanceAdminServiceClient interface {
 	GetWallet(ctx context.Context, in *GetWalletRequest, opts ...grpc.CallOption) (*GetWalletResponse, error)
+	GetWalletTransactions(ctx context.Context, in *GetWalletTransactionsRequest, opts ...grpc.CallOption) (*GetWalletTransactionsResponse, error)
 	GetTransaction(ctx context.Context, in *GetTransactionRequest, opts ...grpc.CallOption) (*GetTransactionResponse, error)
 	PostAdjustment(ctx context.Context, in *PostAdjustmentRequest, opts ...grpc.CallOption) (*PostAdjustmentResponse, error)
 	ListTopUps(ctx context.Context, in *ListTopUpsRequest, opts ...grpc.CallOption) (*ListTopUpsResponse, error)
@@ -49,6 +51,16 @@ func (c *balanceAdminServiceClient) GetWallet(ctx context.Context, in *GetWallet
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetWalletResponse)
 	err := c.cc.Invoke(ctx, BalanceAdminService_GetWallet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *balanceAdminServiceClient) GetWalletTransactions(ctx context.Context, in *GetWalletTransactionsRequest, opts ...grpc.CallOption) (*GetWalletTransactionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWalletTransactionsResponse)
+	err := c.cc.Invoke(ctx, BalanceAdminService_GetWalletTransactions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +112,7 @@ func (c *balanceAdminServiceClient) ConfirmTopUp(ctx context.Context, in *Confir
 // for forward compatibility.
 type BalanceAdminServiceServer interface {
 	GetWallet(context.Context, *GetWalletRequest) (*GetWalletResponse, error)
+	GetWalletTransactions(context.Context, *GetWalletTransactionsRequest) (*GetWalletTransactionsResponse, error)
 	GetTransaction(context.Context, *GetTransactionRequest) (*GetTransactionResponse, error)
 	PostAdjustment(context.Context, *PostAdjustmentRequest) (*PostAdjustmentResponse, error)
 	ListTopUps(context.Context, *ListTopUpsRequest) (*ListTopUpsResponse, error)
@@ -116,6 +129,9 @@ type UnimplementedBalanceAdminServiceServer struct{}
 
 func (UnimplementedBalanceAdminServiceServer) GetWallet(context.Context, *GetWalletRequest) (*GetWalletResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWallet not implemented")
+}
+func (UnimplementedBalanceAdminServiceServer) GetWalletTransactions(context.Context, *GetWalletTransactionsRequest) (*GetWalletTransactionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWalletTransactions not implemented")
 }
 func (UnimplementedBalanceAdminServiceServer) GetTransaction(context.Context, *GetTransactionRequest) (*GetTransactionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTransaction not implemented")
@@ -164,6 +180,24 @@ func _BalanceAdminService_GetWallet_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BalanceAdminServiceServer).GetWallet(ctx, req.(*GetWalletRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BalanceAdminService_GetWalletTransactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWalletTransactionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BalanceAdminServiceServer).GetWalletTransactions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BalanceAdminService_GetWalletTransactions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BalanceAdminServiceServer).GetWalletTransactions(ctx, req.(*GetWalletTransactionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -250,6 +284,10 @@ var BalanceAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWallet",
 			Handler:    _BalanceAdminService_GetWallet_Handler,
+		},
+		{
+			MethodName: "GetWalletTransactions",
+			Handler:    _BalanceAdminService_GetWalletTransactions_Handler,
 		},
 		{
 			MethodName: "GetTransaction",
