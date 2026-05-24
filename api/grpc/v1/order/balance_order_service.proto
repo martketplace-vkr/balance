@@ -31,6 +31,9 @@ message CaptureFundsRequest {
   .github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money money = 3;
   string idempotency_key = 4;
   string reason = 5;
+  int64 vendor_id = 6;
+  .github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money vendor_money = 7;
+  .github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money marketplace_fee = 8;
 }
 
 message CaptureFundsResponse {

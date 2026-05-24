@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/url"
 	"strings"
 	"time"
@@ -448,6 +449,10 @@ func (s *Service) ReserveFunds(ctx context.Context, req *orderpb.ReserveFundsReq
 }
 
 func (s *Service) CaptureFunds(ctx context.Context, req *orderpb.CaptureFundsRequest) (*domainpb.LedgerTransaction, error) {
+	if req.GetVendorId() > 0 || req.GetVendorMoney() != nil || req.GetMarketplaceFee() != nil {
+		return s.captureSplitFunds(ctx, req)
+	}
+
 	return s.moveUserToSystem(ctx, req.GetUserId(), req.GetOrderId(), req.GetMoney(), req.GetIdempotencyKey(), req.GetReason(), domainpb.LedgerTransactionType_LEDGER_TRANSACTION_TYPE_CAPTURE, domainpb.AccountType_ACCOUNT_TYPE_HOLD)
 }
 
@@ -628,6 +633,108 @@ func (s *Service) moveUserToSystem(ctx context.Context, userID, orderID int64, m
 		CreditAccountID: systemAccount.Id,
 		Amount:          formatAmount(amount),
 		PostedAt:        time.Now(),
+	})
+}
+
+func (s *Service) captureSplitFunds(ctx context.Context, req *orderpb.CaptureFundsRequest) (*domainpb.LedgerTransaction, error) {
+	if req.GetMoney() == nil || req.GetVendorMoney() == nil || req.GetMarketplaceFee() == nil {
+		return nil, fmt.Errorf("%w: money, vendor_money and marketplace_fee are required", ErrInvalidArgument)
+	}
+	if req.GetVendorId() <= 0 {
+		return nil, fmt.Errorf("%w: vendor_id must be greater than zero", ErrInvalidArgument)
+	}
+	if req.GetMoney().GetCurrencyCode() <= 0 {
+		return nil, fmt.Errorf("%w: currency_code must be greater than zero", ErrInvalidArgument)
+	}
+	if req.GetVendorMoney().GetCurrencyCode() != req.GetMoney().GetCurrencyCode() ||
+		req.GetMarketplaceFee().GetCurrencyCode() != req.GetMoney().GetCurrencyCode() {
+		return nil, fmt.Errorf("%w: split currencies must match gross currency", ErrInvalidArgument)
+	}
+
+	gross, err := parsePositiveAmount(req.GetMoney().GetAmount())
+	if err != nil {
+		return nil, err
+	}
+	vendorAmount, err := parseAmount(req.GetVendorMoney().GetAmount())
+	if err != nil {
+		return nil, err
+	}
+	feeAmount, err := parseAmount(req.GetMarketplaceFee().GetAmount())
+	if err != nil {
+		return nil, err
+	}
+	if vendorAmount.Sign() < 0 || feeAmount.Sign() < 0 {
+		return nil, fmt.Errorf("%w: split amounts must not be negative", ErrInvalidArgument)
+	}
+	if new(big.Rat).Add(vendorAmount, feeAmount).Cmp(gross) != 0 {
+		return nil, fmt.Errorf("%w: gross amount must equal vendor_money plus marketplace_fee", ErrInvalidArgument)
+	}
+
+	userWallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_USER, req.GetUserId())
+	if err != nil {
+		return nil, err
+	}
+	vendorWallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_VENDOR, req.GetVendorId())
+	if err != nil {
+		return nil, err
+	}
+	systemWallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_SYSTEM, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	userHold, err := s.repository.GetOrCreateAccount(ctx, userWallet.Id, req.GetMoney().GetCurrencyCode(), domainpb.AccountType_ACCOUNT_TYPE_HOLD)
+	if err != nil {
+		return nil, err
+	}
+	vendorAvailable, err := s.repository.GetOrCreateAccount(ctx, vendorWallet.Id, req.GetMoney().GetCurrencyCode(), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE)
+	if err != nil {
+		return nil, err
+	}
+	systemAvailable, err := s.repository.GetOrCreateAccount(ctx, systemWallet.Id, req.GetMoney().GetCurrencyCode(), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE)
+	if err != nil {
+		return nil, err
+	}
+
+	balance, err := s.repository.GetAccountBalance(ctx, userHold.Id)
+	if err != nil {
+		return nil, err
+	}
+	if balance.Cmp(gross) < 0 {
+		return nil, ErrInsufficientFunds
+	}
+
+	entries := []repository.LedgerEntryWrite{
+		{
+			AccountID: userHold.Id,
+			Direction: domainpb.EntryDirection_ENTRY_DIRECTION_DEBIT,
+			Amount:    formatAmount(gross),
+		},
+	}
+	if vendorAmount.Sign() > 0 {
+		entries = append(entries, repository.LedgerEntryWrite{
+			AccountID: vendorAvailable.Id,
+			Direction: domainpb.EntryDirection_ENTRY_DIRECTION_CREDIT,
+			Amount:    formatAmount(vendorAmount),
+		})
+	}
+	if feeAmount.Sign() > 0 {
+		entries = append(entries, repository.LedgerEntryWrite{
+			AccountID: systemAvailable.Id,
+			Direction: domainpb.EntryDirection_ENTRY_DIRECTION_CREDIT,
+			Amount:    formatAmount(feeAmount),
+		})
+	}
+
+	return s.postIfNotExists(ctx, repository.LedgerWriteRequest{
+		IdempotencyKey: req.GetIdempotencyKey(),
+		Type:           domainpb.LedgerTransactionType_LEDGER_TRANSACTION_TYPE_CAPTURE,
+		Status:         domainpb.LedgerTransactionStatus_LEDGER_TRANSACTION_STATUS_POSTED,
+		Reason:         req.GetReason(),
+		ReferenceType:  domainpb.ReferenceType_REFERENCE_TYPE_ORDER,
+		ReferenceID:    fmt.Sprintf("%d", req.GetOrderId()),
+		Entries:        entries,
+		PostedAt:       time.Now(),
 	})
 }
 

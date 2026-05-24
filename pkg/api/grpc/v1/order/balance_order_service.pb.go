@@ -149,6 +149,9 @@ type CaptureFundsRequest struct {
 	Money          *domain.Money          `protobuf:"bytes,3,opt,name=money,proto3" json:"money,omitempty"`
 	IdempotencyKey string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	Reason         string                 `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	VendorId       int64                  `protobuf:"varint,6,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty"`
+	VendorMoney    *domain.Money          `protobuf:"bytes,7,opt,name=vendor_money,json=vendorMoney,proto3" json:"vendor_money,omitempty"`
+	MarketplaceFee *domain.Money          `protobuf:"bytes,8,opt,name=marketplace_fee,json=marketplaceFee,proto3" json:"marketplace_fee,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -216,6 +219,27 @@ func (x *CaptureFundsRequest) GetReason() string {
 		return x.Reason
 	}
 	return ""
+}
+
+func (x *CaptureFundsRequest) GetVendorId() int64 {
+	if x != nil {
+		return x.VendorId
+	}
+	return 0
+}
+
+func (x *CaptureFundsRequest) GetVendorMoney() *domain.Money {
+	if x != nil {
+		return x.VendorMoney
+	}
+	return nil
+}
+
+func (x *CaptureFundsRequest) GetMarketplaceFee() *domain.Money {
+	if x != nil {
+		return x.MarketplaceFee
+	}
+	return nil
 }
 
 type CaptureFundsResponse struct {
@@ -514,13 +538,16 @@ const file_v1_order_balance_order_service_proto_rawDesc = "" +
 	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12\x16\n" +
 	"\x06reason\x18\x05 \x01(\tR\x06reason\"\x87\x01\n" +
 	"\x14ReserveFundsResponse\x12o\n" +
-	"\vtransaction\x18\x01 \x01(\v2M.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransactionR\vtransaction\"\xe3\x01\n" +
+	"\vtransaction\x18\x01 \x01(\v2M.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransactionR\vtransaction\"\xd2\x03\n" +
 	"\x13CaptureFundsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\x03R\aorderId\x12W\n" +
 	"\x05money\x18\x03 \x01(\v2A.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.MoneyR\x05money\x12'\n" +
 	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12\x16\n" +
-	"\x06reason\x18\x05 \x01(\tR\x06reason\"\x87\x01\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\x12\x1b\n" +
+	"\tvendor_id\x18\x06 \x01(\x03R\bvendorId\x12d\n" +
+	"\fvendor_money\x18\a \x01(\v2A.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.MoneyR\vvendorMoney\x12j\n" +
+	"\x0fmarketplace_fee\x18\b \x01(\v2A.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.MoneyR\x0emarketplaceFee\"\x87\x01\n" +
 	"\x14CaptureFundsResponse\x12o\n" +
 	"\vtransaction\x18\x01 \x01(\v2M.github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransactionR\vtransaction\"\xe3\x01\n" +
 	"\x13ReleaseFundsRequest\x12\x17\n" +
@@ -574,24 +601,26 @@ var file_v1_order_balance_order_service_proto_depIdxs = []int32{
 	8,  // 0: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReserveFundsRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
 	9,  // 1: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReserveFundsResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
 	8,  // 2: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
-	9,  // 3: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
-	8,  // 4: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
-	9,  // 5: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
-	8,  // 6: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
-	9,  // 7: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
-	0,  // 8: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReserveFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReserveFundsRequest
-	2,  // 9: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.CaptureFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsRequest
-	4,  // 10: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReleaseFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsRequest
-	6,  // 11: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.RefundFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsRequest
-	1,  // 12: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReserveFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReserveFundsResponse
-	3,  // 13: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.CaptureFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsResponse
-	5,  // 14: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReleaseFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsResponse
-	7,  // 15: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.RefundFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsResponse
-	12, // [12:16] is the sub-list for method output_type
-	8,  // [8:12] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	8,  // 3: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsRequest.vendor_money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
+	8,  // 4: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsRequest.marketplace_fee:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
+	9,  // 5: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	8,  // 6: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
+	9,  // 7: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	8,  // 8: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsRequest.money:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.Money
+	9,  // 9: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsResponse.transaction:type_name -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.domain.LedgerTransaction
+	0,  // 10: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReserveFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReserveFundsRequest
+	2,  // 11: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.CaptureFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsRequest
+	4,  // 12: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReleaseFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsRequest
+	6,  // 13: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.RefundFunds:input_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsRequest
+	1,  // 14: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReserveFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReserveFundsResponse
+	3,  // 15: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.CaptureFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.CaptureFundsResponse
+	5,  // 16: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.ReleaseFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.ReleaseFundsResponse
+	7,  // 17: github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.BalanceOrderService.RefundFunds:output_type -> github.com.martketplace.vkr.balance.pkg.api.grpc.v1.order.RefundFundsResponse
+	14, // [14:18] is the sub-list for method output_type
+	10, // [10:14] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_v1_order_balance_order_service_proto_init() }

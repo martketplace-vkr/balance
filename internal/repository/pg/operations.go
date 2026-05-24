@@ -424,11 +424,10 @@ func (r *Repository) PostLedgerTransaction(ctx context.Context, req LedgerWriteR
 		insert into balance.entry(transaction_id, account_id, direction, amount)
 		values ($1, $2, $3, $4)
 	`
-	if _, err := tx.ExecContext(ctx, insertEntry, transactionID, req.DebitAccountID, int32(domainpb.EntryDirection_ENTRY_DIRECTION_DEBIT), req.Amount); err != nil {
-		return nil, err
-	}
-	if _, err := tx.ExecContext(ctx, insertEntry, transactionID, req.CreditAccountID, int32(domainpb.EntryDirection_ENTRY_DIRECTION_CREDIT), req.Amount); err != nil {
-		return nil, err
+	for _, entry := range ledgerEntries(req) {
+		if _, err := tx.ExecContext(ctx, insertEntry, transactionID, entry.AccountID, int32(entry.Direction), entry.Amount); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -472,12 +471,30 @@ func (r *Repository) getOrCreateLedgerTransactionInTx(ctx context.Context, tx *s
 		insert into balance.entry(transaction_id, account_id, direction, amount)
 		values ($1, $2, $3, $4)
 	`
-	if _, err := tx.ExecContext(ctx, insertEntry, existingID, req.DebitAccountID, int32(domainpb.EntryDirection_ENTRY_DIRECTION_DEBIT), req.Amount); err != nil {
-		return 0, err
-	}
-	if _, err := tx.ExecContext(ctx, insertEntry, existingID, req.CreditAccountID, int32(domainpb.EntryDirection_ENTRY_DIRECTION_CREDIT), req.Amount); err != nil {
-		return 0, err
+	for _, entry := range ledgerEntries(req) {
+		if _, err := tx.ExecContext(ctx, insertEntry, existingID, entry.AccountID, int32(entry.Direction), entry.Amount); err != nil {
+			return 0, err
+		}
 	}
 
 	return existingID, nil
+}
+
+func ledgerEntries(req LedgerWriteRequest) []LedgerEntryWrite {
+	if len(req.Entries) > 0 {
+		return req.Entries
+	}
+
+	return []LedgerEntryWrite{
+		{
+			AccountID: req.DebitAccountID,
+			Direction: domainpb.EntryDirection_ENTRY_DIRECTION_DEBIT,
+			Amount:    req.Amount,
+		},
+		{
+			AccountID: req.CreditAccountID,
+			Direction: domainpb.EntryDirection_ENTRY_DIRECTION_CREDIT,
+			Amount:    req.Amount,
+		},
+	}
 }

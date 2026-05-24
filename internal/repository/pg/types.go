@@ -109,7 +109,14 @@ type LedgerWriteRequest struct {
 	DebitAccountID  int64
 	CreditAccountID int64
 	Amount          string
+	Entries         []LedgerEntryWrite
 	PostedAt        time.Time
+}
+
+type LedgerEntryWrite struct {
+	AccountID int64
+	Direction domainpb.EntryDirection
+	Amount    string
 }
 
 type TopUpListFilter struct {
