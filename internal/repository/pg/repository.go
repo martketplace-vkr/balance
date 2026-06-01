@@ -164,6 +164,56 @@ func (r *Repository) GetWalletByID(ctx context.Context, walletID int64) (*domain
 	return toWallet(row, accounts), nil
 }
 
+func (r *Repository) GetSystemCommissionBalances(ctx context.Context, walletID int64) (map[int64]string, error) {
+	rows := make([]struct {
+		CurrencyCode int64  `db:"currency_code"`
+		Balance      string `db:"balance"`
+	}, 0)
+	query := `
+		select
+			a.currency_code,
+			coalesce(sum(e.amount), 0)::text as balance
+		from balance.entry e
+		join balance.account a on a.id = e.account_id
+		join balance.ledger_transaction lt on lt.id = e.transaction_id
+		where a.wallet_id = $1
+			and a.account_type = $2
+			and e.direction = $3
+			and lt.transaction_type = $4
+			and lt.reference_type = $5
+			and exists (
+				select 1
+				from balance.entry vendor_entry
+				join balance.account vendor_account on vendor_account.id = vendor_entry.account_id
+				join balance.wallet vendor_wallet on vendor_wallet.id = vendor_account.wallet_id
+				where vendor_entry.transaction_id = lt.id
+					and vendor_entry.direction = $3
+					and vendor_wallet.owner_type = $6
+			)
+		group by a.currency_code
+	`
+	if err := r.db.SelectContext(
+		ctx,
+		&rows,
+		query,
+		walletID,
+		int32(domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE),
+		int32(domainpb.EntryDirection_ENTRY_DIRECTION_CREDIT),
+		int32(domainpb.LedgerTransactionType_LEDGER_TRANSACTION_TYPE_CAPTURE),
+		int32(domainpb.ReferenceType_REFERENCE_TYPE_ORDER),
+		int32(domainpb.WalletOwnerType_WALLET_OWNER_TYPE_VENDOR),
+	); err != nil {
+		return nil, err
+	}
+
+	balances := make(map[int64]string, len(rows))
+	for _, row := range rows {
+		balances[row.CurrencyCode] = row.Balance
+	}
+
+	return balances, nil
+}
+
 func (r *Repository) GetOrCreateAccount(
 	ctx context.Context,
 	walletID int64,

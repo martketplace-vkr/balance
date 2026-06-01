@@ -594,7 +594,35 @@ func (s *Service) GetAdminWallet(ctx context.Context, ownerType domainpb.WalletO
 		}
 		return nil, err
 	}
+	if ownerType == domainpb.WalletOwnerType_WALLET_OWNER_TYPE_SYSTEM {
+		if err := s.applySystemCommissionBalances(ctx, wallet); err != nil {
+			return nil, err
+		}
+	}
 	return wallet, nil
+}
+
+func (s *Service) applySystemCommissionBalances(ctx context.Context, wallet *domainpb.Wallet) error {
+	if wallet == nil {
+		return nil
+	}
+
+	balances, err := s.repository.GetSystemCommissionBalances(ctx, wallet.GetId())
+	if err != nil {
+		return err
+	}
+
+	for _, account := range wallet.GetAccounts() {
+		if account.GetAccountType() != domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE {
+			continue
+		}
+		account.Balance = balances[account.GetCurrencyCode()]
+		if account.Balance == "" {
+			account.Balance = "0"
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) GetAdminWalletTransactions(ctx context.Context, req *adminpb.GetWalletTransactionsRequest) ([]*domainpb.LedgerTransaction, error) {
