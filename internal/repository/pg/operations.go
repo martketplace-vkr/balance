@@ -114,6 +114,23 @@ func (r *Repository) GetTopUpByProviderExternalID(ctx context.Context, providerT
 	return toTopUp(row), nil
 }
 
+func (r *Repository) GetTopUpByProviderTxHash(ctx context.Context, providerType domainpb.ProviderType, txHash string) (*domainpb.TopUp, error) {
+	var row topUpRow
+	query := `
+		select
+			t.id, t.wallet_id, t.currency_code, t.amount::text as amount, t.provider_type, t.provider_name, t.status,
+			t.external_id, t.external_status, t.payment_url, t.wallet_address, t.wallet_tag, t.network, t.tx_hash,
+			t.idempotency_key, t.expires_at, t.paid_at, t.confirmed_at, t.created_at, t.updated_at
+		from balance.top_up t
+		where t.provider_type = $1 and t.tx_hash = $2
+	`
+	if err := r.db.GetContext(ctx, &row, query, int32(providerType), txHash); err != nil {
+		return nil, err
+	}
+
+	return toTopUp(row), nil
+}
+
 func (r *Repository) CreateTopUp(ctx context.Context, req TopUpCreateRequest) (*domainpb.TopUp, error) {
 	query := `
 		insert into balance.top_up(

@@ -27,9 +27,22 @@ type userSignUpEvent struct {
 	ID int64 `json:"ID"`
 }
 
+type cryptoDepositConfirmedEvent struct {
+	UserID        int64  `json:"user_id"`
+	Address       string `json:"address"`
+	Network       string `json:"network"`
+	Asset         string `json:"asset"`
+	TxHash        string `json:"tx_hash"`
+	LogIndex      int64  `json:"log_index"`
+	Amount        string `json:"amount"`
+	BlockNumber   int64  `json:"block_number"`
+	Confirmations int64  `json:"confirmations"`
+}
+
 const (
 	cryptoNetwork       = "TRON"
 	cryptoAsset         = "USDT"
+	cryptoProviderName  = "USDT-TRC20"
 	mockRubSBPProvider  = "MOCK_RUB_SBP"
 	mockRubCardProvider = "MOCK_RUB_CARD"
 	defaultProviderURL  = "http://127.0.0.1:8010"
@@ -74,6 +87,115 @@ func (s *Service) HandleUserSignUp(ctx context.Context, event dto.Event) error {
 	}
 
 	return s.EnsureUserWalletAccounts(ctx, payload.ID)
+}
+
+func (s *Service) HandleCryptoDepositConfirmed(ctx context.Context, event dto.Event) error {
+	var payload cryptoDepositConfirmedEvent
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return err
+	}
+
+	if payload.UserID <= 0 {
+		return fmt.Errorf("%w: user_id must be greater than zero", ErrInvalidArgument)
+	}
+	if !strings.EqualFold(strings.TrimSpace(payload.Network), cryptoNetwork) {
+		return fmt.Errorf("%w: only TRON network is supported", ErrInvalidArgument)
+	}
+	if !strings.EqualFold(strings.TrimSpace(payload.Asset), cryptoAsset) {
+		return fmt.Errorf("%w: only USDT asset is supported", ErrInvalidArgument)
+	}
+	if strings.TrimSpace(payload.TxHash) == "" {
+		return fmt.Errorf("%w: tx_hash is required", ErrInvalidArgument)
+	}
+	amount, err := parsePositiveAmount(payload.Amount)
+	if err != nil {
+		return err
+	}
+
+	txHash := strings.TrimSpace(payload.TxHash)
+	externalID := fmt.Sprintf("%s:%d", txHash, payload.LogIndex)
+	ledgerKey := fmt.Sprintf("crypto-deposit:%s:%s:%d", strings.ToUpper(strings.TrimSpace(payload.Network)), txHash, payload.LogIndex)
+
+	existingTopUp, err := s.repository.GetTopUpByProviderTxHash(ctx, domainpb.ProviderType_PROVIDER_TYPE_CRYPTO, txHash)
+	wasConfirmed := err == nil && existingTopUp.GetStatus() == domainpb.TopUpStatus_TOP_UP_STATUS_CONFIRMED
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
+	userWallet, err := s.ensureUserAccounts(ctx, payload.UserID)
+	if err != nil {
+		return err
+	}
+	systemWallet, err := s.repository.EnsureWallet(ctx, domainpb.WalletOwnerType_WALLET_OWNER_TYPE_SYSTEM, 0)
+	if err != nil {
+		return err
+	}
+	userAccount, err := s.repository.GetOrCreateAccount(ctx, userWallet.GetId(), int64(currency.USDTinTRC), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE)
+	if err != nil {
+		return err
+	}
+	systemAccount, err := s.repository.GetOrCreateAccount(ctx, systemWallet.GetId(), int64(currency.USDTinTRC), domainpb.AccountType_ACCOUNT_TYPE_AVAILABLE)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	topUp := existingTopUp
+	if topUp == nil {
+		topUp, err = s.repository.CreateTopUp(ctx, repository.TopUpCreateRequest{
+			WalletID:       userWallet.GetId(),
+			CurrencyCode:   int64(currency.USDTinTRC),
+			Amount:         formatAmount(amount),
+			ProviderType:   domainpb.ProviderType_PROVIDER_TYPE_CRYPTO,
+			ProviderName:   cryptoProviderName,
+			Status:         domainpb.TopUpStatus_TOP_UP_STATUS_CONFIRMED,
+			ExternalID:     externalID,
+			ExternalStatus: "confirmed",
+			WalletAddress:  strings.TrimSpace(payload.Address),
+			Network:        cryptoNetwork,
+			TxHash:         txHash,
+			IdempotencyKey: ledgerKey,
+			PaidAt:         &now,
+			ConfirmedAt:    &now,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = s.postIfNotExists(ctx, repository.LedgerWriteRequest{
+		IdempotencyKey:  ledgerKey,
+		Type:            domainpb.LedgerTransactionType_LEDGER_TRANSACTION_TYPE_TOP_UP,
+		Status:          domainpb.LedgerTransactionStatus_LEDGER_TRANSACTION_STATUS_POSTED,
+		Reason:          "confirmed crypto deposit",
+		ReferenceType:   domainpb.ReferenceType_REFERENCE_TYPE_TOP_UP,
+		ReferenceID:     topUp.GetExternalId(),
+		DebitAccountID:  systemAccount.GetId(),
+		CreditAccountID: userAccount.GetId(),
+		Amount:          formatAmount(amount),
+		PostedAt:        now,
+	})
+	if err != nil {
+		return err
+	}
+
+	if s.outbox != nil && !wasConfirmed {
+		return s.outbox.Send(ctx, "balance_topup_completed", struct {
+			UserID       int64  `json:"user_id"`
+			CurrencyCode int64  `json:"currency_code"`
+			Amount       string `json:"amount"`
+			TopUpID      int64  `json:"top_up_id"`
+			TxHash       string `json:"tx_hash"`
+		}{
+			UserID:       payload.UserID,
+			CurrencyCode: int64(currency.USDTinTRC),
+			Amount:       formatAmount(amount),
+			TopUpID:      topUp.GetId(),
+			TxHash:       txHash,
+		})
+	}
+
+	return nil
 }
 
 func (s *Service) EnsureUserWalletAccounts(ctx context.Context, userID int64) error {
